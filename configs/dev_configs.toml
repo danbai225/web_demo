@@ -1,0 +1,29 @@
+[language]
+local = "zh-cn"
+
+[mail]
+host = "smtp.163.com"
+pass = ""
+port = 465
+to = ""
+user = ""
+
+[mysql]
+
+addr = ""
+name = ""
+pass = ""
+user = ""
+
+[mysql.base]
+connmaxlifetime = 60
+maxidleconn = 60
+maxopenconn = 10
+
+[redis]
+addr = ""
+db = "0"
+maxretries = 3
+minidleconns = 5
+pass = ""
+poolsize = 10
