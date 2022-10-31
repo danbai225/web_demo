@@ -1,5 +1,5 @@
 FROM golang:1.18-alpine AS build-env
-MAINTAINER huangjianjun
+MAINTAINER danbai
 
 #修改镜像源为国内
 RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.ustc.edu.cn/g' /etc/apk/repositories && apk update
