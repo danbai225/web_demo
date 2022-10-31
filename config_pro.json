@@ -1,0 +1,20 @@
+{
+  "env": "pro",
+  "addr": ":80",
+  "mysql": {
+    "user": "root",
+    "pass": "123",
+    "addr": "1.1.1.1:333",
+    "name": "test"
+  },
+  "redis":
+  {
+    "pass": "321",
+    "addr": "1.1.1.1:332",
+    "db": 1
+  },
+  "dev": {
+    "username": "danbai"
+  },
+  "host": "http://127.0.0.1"
+}

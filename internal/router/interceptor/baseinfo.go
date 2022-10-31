@@ -3,31 +3,24 @@ package interceptor
 import (
 	"fmt"
 	"net"
-
-	"web_demo/internal/pkg/core"
+	"web_demo/internal/core"
+	"web_demo/internal/data_obj/base"
 )
 
-type BaseInfo struct {
-	Ip       string `json:"ip"`
-	Device   string `json:"device"`
-	Location string `json:"location"`
-}
-
-func (i *interceptor) BaseInfo() core.HandlerFunc {
-	return func(c core.Context) {
-		base := new(BaseInfo)
-		if ip := c.GetHeader("X-Real-IP"); ip == "" {
-			base.Ip = c.GetGin().ClientIP()
-		} else {
-			base.Ip = ip
-		}
-		base.Device = c.GetHeader("User-Agent")
-		record, _ := i.ipDB.City(net.ParseIP(base.Ip))
-		subdivisionName := ""
-		if len(record.Subdivisions) > 0 {
-			subdivisionName = record.Subdivisions[0].Names["zh-CN"]
-		}
-		base.Location = fmt.Sprintf("%s%s%s", record.Country.Names["zh-CN"], subdivisionName, record.City.Names["zh-CN"])
-		c.SetVal("baseInfo", base)
+func BaseInfo() {
+	baseInfo := new(base.HttpBaseInfo)
+	c := core.GetContext()
+	if ip := c.GetHeader("X-Real-IP"); ip == "" {
+		baseInfo.Ip = c.GetGin().ClientIP()
+	} else {
+		baseInfo.Ip = ip
 	}
+	baseInfo.Device = c.GetHeader("User-Agent")
+	record, _ := ipDB.City(net.ParseIP(baseInfo.Ip))
+	subdivisionName := ""
+	if len(record.Subdivisions) > 0 {
+		subdivisionName = record.Subdivisions[0].Names["zh-CN"]
+	}
+	baseInfo.Location = fmt.Sprintf("%s%s%s", record.Country.Names["zh-CN"], subdivisionName, record.City.Names["zh-CN"])
+	c.SetSessionUserInfo(&core.SessionUserInfo{HttpBaseInfo: baseInfo})
 }

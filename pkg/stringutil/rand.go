@@ -2,8 +2,11 @@ package stringutil
 
 import (
 	"math/rand"
+	"strings"
 	"time"
 	"unsafe"
+
+	"github.com/google/uuid"
 )
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -31,4 +34,27 @@ func RandString(n int) string {
 	}
 
 	return *(*string)(unsafe.Pointer(&b))
+}
+func UUID() string {
+	u := uuid.New()
+	key := u.String()
+	return strings.ReplaceAll(key, "-", "")
+}
+func RemoveSpecial(str string) string {
+	str = strings.ReplaceAll(str, " ", "")
+	str = strings.ReplaceAll(str, "\r", "")
+	str = strings.ReplaceAll(str, "\n", "")
+	return str
+}
+func TimeStr2Date(timeStr string) string {
+	if len(timeStr) >= 10 {
+		return timeStr[:10]
+	}
+	if len(timeStr) == 10 {
+		return timeStr
+	}
+	if timeStr == "" {
+		return ""
+	}
+	return "1001-01-01"
 }

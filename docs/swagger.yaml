@@ -1,103 +1,48 @@
 definitions:
-  admin.SettingPostRequest:
-    properties:
-      key:
-        description: 键名
-        type: string
-      val:
-        description: 键值
-        type: string
-    required:
-    - key
-    - val
-    type: object
   base.ReturnMsg:
     properties:
       code:
+        description: 业务状态码
         type: integer
-      data: {}
+      data:
+        description: 数据
       msg:
+        description: 消息
+        type: string
+      trace:
+        description: 请求ID
         type: string
     type: object
-  code.Failure:
+  data_obj.UserInfoRes:
     properties:
-      code:
-        description: 业务码
-        type: integer
-      message:
-        description: 描述信息
+      email:
+        type: string
+      ip:
+        type: string
+      username:
         type: string
     type: object
 info:
   contact: {}
 paths:
-  /api/admin/setting:
+  /api/user/info:
     get:
       consumes:
       - text/plain
-      description: 获取设置
-      parameters:
-      - description: 键
-        in: query
-        name: key
-        required: true
-        type: string
+      description: 用户基础信息
       produces:
       - application/json
       responses:
         "200":
           description: 返回数据
           schema:
-            $ref: '#/definitions/base.ReturnMsg'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/code.Failure'
-      summary: 获取设置
+            allOf:
+            - $ref: '#/definitions/base.ReturnMsg'
+            - properties:
+                Data:
+                  $ref: '#/definitions/data_obj.UserInfoRes'
+              type: object
+      summary: 用户基础信息
       tags:
-      - API.admin
-    post:
-      consumes:
-      - application/json
-      description: 添加设置 一些系统设置保存接口
-      parameters:
-      - description: 请求信息
-        in: body
-        name: Request
-        required: true
-        schema:
-          $ref: '#/definitions/admin.SettingPostRequest'
-      produces:
-      - application/json
-      responses:
-        "200":
-          description: OK
-          schema:
-            $ref: '#/definitions/base.ReturnMsg'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/code.Failure'
-      summary: 添加设置
-      tags:
-      - API.admin
-  /index:
-    get:
-      consumes:
-      - text/plain
-      description: 返回index html
-      produces:
-      - text/html
-      responses:
-        "200":
-          description: OK
-          schema:
-            type: string
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/code.Failure'
-      summary: 返回index html
-      tags:
-      - API.html
+      - API.user
 swagger: "2.0"

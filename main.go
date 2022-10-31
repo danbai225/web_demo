@@ -2,94 +2,85 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"flag"
+	logs "github.com/danbai225/go-logs"
 	"net/http"
 	"time"
-
-	"web_demo/configs"
+	"web_demo/config"
+	"web_demo/internal/core"
+	"web_demo/internal/model"
+	"web_demo/internal/repository/mysql"
+	"web_demo/internal/repository/redis"
 	"web_demo/internal/router"
-	"web_demo/pkg/env"
-	"web_demo/pkg/logger"
+	"web_demo/internal/services"
 	"web_demo/pkg/shutdown"
-	"web_demo/pkg/timeutil"
-
-	"go.uber.org/zap"
 )
 
 func main() {
-	// 初始化 access logger
-	var accessLogger *zap.Logger
-	var err error
-	if env.Active().IsDev() {
-		accessLogger, err = logger.NewJSONLogger(
-			logger.WithField("domain", fmt.Sprintf("%s[%s]", configs.ProjectName, env.Active().Value())),
-			logger.WithTimeLayout(timeutil.CSTLayout),
-			logger.WithFileRotationP(configs.ProjectAccessLogFile),
-		)
-	} else {
-		accessLogger, err = logger.NewJSONLogger(
-			logger.WithDisableConsole(),
-			logger.WithField("domain", fmt.Sprintf("%s[%s]", configs.ProjectName, env.Active().Value())),
-			logger.WithTimeLayout(timeutil.CSTLayout),
-			logger.WithFileRotationP(configs.ProjectAccessLogFile),
-		)
-	}
+	c := config.Get()
+	//http://patorjk.com/software/taag/#p=display&h=0&f=Ogre&t=web_demo
+	logs.Info("env:", c.Env, "                 _                 _                         \n__      __  ___ | |__           __| |  ___  _ __ ___    ___  \n\\ \\ /\\ / / / _ \\| '_ \\         / _` | / _ \\| '_ ` _ \\  / _ \\ \n \\ V  V / |  __/| |_) |       | (_| ||  __/| | | | | || (_) |\n  \\_/\\_/   \\___||_.__/  _____  \\__,_| \\___||_| |_| |_| \\___/ \n                       |_____|                               ")
+	//mysql
+	db, err := mysql.New(c.Mysql.User, c.Mysql.Pass, c.Mysql.Addr, c.Mysql.Name)
 	if err != nil {
-		panic(err)
+		logs.Err(err)
+		return
 	}
-
+	if flag.Arg(0) == "syncDB" {
+		logs.Info("数据库初始化")
+		err = db.GetDb().AutoMigrate(model.Export()...)
+		if err != nil {
+			logs.Err(err)
+		} else {
+			logs.Info("初始化完成")
+		}
+		return
+	}
+	//redis
+	rdb, err := redis.New(c.Redis.Addr, c.Redis.Pass, c.Redis.Db)
 	if err != nil {
-		panic(err)
+		logs.Err(err)
+		return
 	}
-
-	defer func() {
-		_ = accessLogger.Sync()
-	}()
-
-	// 初始化 HTTP 服务
-	s, err := router.NewHTTPServer(accessLogger)
-	if err != nil {
-		panic(err)
-	}
-
+	services.InitService(db, rdb)
+	//http服务
 	server := &http.Server{
-		Addr:    configs.ProjectPort,
-		Handler: s.Mux,
+		Addr:    c.Addr,
+		Handler: core.New(router.RegRouter, db, rdb),
 	}
-
 	go func() {
 		if err := server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			accessLogger.Fatal("http server startup err", zap.Error(err))
+			logs.Err("http services startup err", err)
 		}
 	}()
-
 	// 优雅关闭
 	shutdown.NewHook().Close(
-		// 关闭 http server
+		// 关闭 http services
 		func() {
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 			defer cancel()
-
 			if err := server.Shutdown(ctx); err != nil {
-				accessLogger.Error("server shutdown err", zap.Error(err))
+				logs.Err("services shutdown err", err)
 			}
 		},
-
-		// 关闭 db
+		//service
 		func() {
-			if s.Db != nil {
-				if err := s.Db.DbClose(); err != nil {
-					accessLogger.Error("dbw close err", zap.Error(err))
-				}
+			err := services.Close()
+			if err != nil {
+				logs.Err(err)
+				return
 			}
 		},
-
-		// 关闭 cache
+		// 关闭 mysql services
 		func() {
-			if s.Cache != nil {
-				if err := s.Cache.Close(); err != nil {
-					accessLogger.Error("cache close err", zap.Error(err))
-				}
+			if err := db.DbClose(); err != nil {
+				logs.Err("mysql shutdown err", err)
+			}
+		},
+		// 关闭 redis services
+		func() {
+			if err := rdb.Close(); err != nil {
+				logs.Err("redis shutdown err", err)
 			}
 		},
 	)

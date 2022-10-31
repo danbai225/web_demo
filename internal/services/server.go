@@ -1,26 +1,28 @@
 package services
 
 import (
-	"go.uber.org/zap"
+	logs "github.com/danbai225/go-logs"
 	"web_demo/internal/repository/mysql"
 	"web_demo/internal/repository/redis"
-	"web_demo/internal/services/admin"
 	"web_demo/internal/services/base"
-	"web_demo/internal/services/event_log"
+	"web_demo/internal/services/event"
+	"web_demo/internal/services/user"
 )
 
-var AdminServer admin.Service
-var EventLogServer event_log.Service
 var SeverM *base.ServerManage
 
-func InitService(logger *zap.Logger, cache redis.Repo, db mysql.Repo) {
-	SeverM = base.ServerManage{}.New()
-	EventLogServer = event_log.New(logger, db, cache)
-	AdminServer = admin.New(logger, db, cache, SeverM)
-
-	SeverM.Set("event_log", EventLogServer)
-	SeverM.Set("admin", AdminServer)
-
-	EventLogServer.CheckSever()
-	AdminServer.CheckSever()
+// InitService 注册服务
+func InitService(db mysql.Repo, rdb redis.Repo) {
+	SeverM = base.NewServerManage()
+	defer func() {
+		err := SeverM.Check()
+		if err != nil {
+			logs.Err(err)
+		}
+	}()
+	SeverM.Set("user", user.New(SeverM, db, rdb))
+	SeverM.Set("event", event.New(SeverM, db, rdb))
+}
+func Close() error {
+	return SeverM.Over()
 }

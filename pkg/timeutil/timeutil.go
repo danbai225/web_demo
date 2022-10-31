@@ -71,3 +71,8 @@ func ParseGMTInLocation(date string) (time.Time, error) {
 func SubInLocation(ts time.Time) float64 {
 	return math.Abs(time.Now().In(cst).Sub(ts).Seconds())
 }
+
+// return CSTLayout 计算时间差
+func returnCSTLayoutTime(ts time.Time) string {
+	return ts.Format(CSTLayout)
+}

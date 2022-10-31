@@ -1,74 +1,45 @@
 package interceptor
 
 import (
-	"encoding/json"
-	"net/http"
-
-	"web_demo/configs"
-	"web_demo/internal/code"
-	"web_demo/internal/pkg/core"
-	"web_demo/internal/proposal"
-	"web_demo/internal/repository/redis"
+	"fmt"
+	"github.com/pkg/errors"
+	"web_demo/config"
+	"web_demo/internal/core"
+	"web_demo/internal/myconst"
 	"web_demo/pkg/env"
-	"web_demo/pkg/errors"
 )
 
-func (i *interceptor) CheckLogin(ctx core.Context) (sessionUserInfo proposal.SessionUserInfo, err core.BusinessError) {
-	val := ctx.GetVal("baseInfo")
-	if val != nil {
-		base := val.(*BaseInfo)
-		defer func() {
-			sessionUserInfo.Device = base.Device
-			sessionUserInfo.IP = base.Ip
-			sessionUserInfo.Location = base.Location
-		}()
+func CheckLogin() {
+	ctx := core.GetContext()
+	token, ok := ctx.GetGin().GetQuery("token")
+	if !ok {
+		token = ctx.GetHeader("token")
 	}
-	token := ctx.GetHeader(configs.HeaderLoginToken)
-	if token == "" {
-		token, _ = ctx.GetGin().GetQuery(configs.HeaderLoginToken)
+	username, _ := ctx.GetGin().GetQuery("u")
+	if env.Active().IsDev() && username == "" && token == "" {
+		username = config.Get().Dev.Username
 	}
-	if token == "" {
-		if env.Active().IsDev() {
-			sessionUserInfo = proposal.SessionUserInfo{
-				UserType: 1,
-				Device:   "test",
-				IP:       "127.0.0.1",
-				Location: "test",
-			}
+	HttpBaseInfo := ctx.SessionUserInfo().HttpBaseInfo
+	if token == "" && username == "" {
+		//无效
+		ctx.AbortError(errors.New("签名验证未通过"))
+		return
+	} else if username != "" {
+		//dev
+		ctx.SetSessionUserInfo(&core.SessionUserInfo{
+			Username:     username,
+			Email:        "test@qq.com",
+			HttpBaseInfo: HttpBaseInfo,
+		})
+	} else {
+		//正常
+		info := core.SessionUserInfo{}
+		err := ctx.GetRdb().GetOBJ(fmt.Sprint(myconst.TokenPrefix, token), &info)
+		if err != nil {
+			ctx.AbortError(err)
 			return
 		}
-		err = core.Error(
-			http.StatusUnauthorized,
-			code.AuthorizationError,
-			code.Text(code.AuthorizationError)).WithError(errors.New("Header 中缺少 Session_Key 参数"))
-		return
+		info.HttpBaseInfo = HttpBaseInfo
+		ctx.SetSessionUserInfo(&info)
 	}
-	if !i.cache.Exists(configs.RedisKeyPrefixLoginUser + token) {
-		err = core.Error(
-			http.StatusUnauthorized,
-			code.AuthorizationError,
-			code.Text(code.AuthorizationError)).WithError(errors.New("请先登录"))
-		return
-	}
-
-	cacheData, cacheErr := i.cache.Get(configs.RedisKeyPrefixLoginUser+token, redis.WithTrace(ctx.Trace()))
-	if cacheErr != nil {
-		err = core.Error(
-			http.StatusUnauthorized,
-			code.AuthorizationError,
-			code.Text(code.AuthorizationError)).WithError(cacheErr)
-
-		return
-	}
-	i.cache.Expire(configs.RedisKeyPrefixLoginUser+token, configs.LoginSessionTTL)
-	jsonErr := json.Unmarshal([]byte(cacheData), &sessionUserInfo)
-	if jsonErr != nil {
-		core.Error(
-			http.StatusUnauthorized,
-			code.AuthorizationError,
-			code.Text(code.AuthorizationError)).WithError(jsonErr)
-
-		return
-	}
-	return
 }

@@ -23,9 +23,9 @@ var doc = `{
     "host": "{{.Host}}",
     "basePath": "{{.BasePath}}",
     "paths": {
-        "/api/admin/setting": {
+        "/api/user/info": {
             "get": {
-                "description": "获取设置",
+                "description": "用户基础信息",
                 "consumes": [
                     "text/plain"
                 ],
@@ -33,96 +33,26 @@ var doc = `{
                     "application/json"
                 ],
                 "tags": [
-                    "API.admin"
+                    "API.user"
                 ],
-                "summary": "获取设置",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "键",
-                        "name": "key",
-                        "in": "query",
-                        "required": true
-                    }
-                ],
+                "summary": "用户基础信息",
                 "responses": {
                     "200": {
                         "description": "返回数据",
                         "schema": {
-                            "$ref": "#/definitions/base.ReturnMsg"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/code.Failure"
-                        }
-                    }
-                }
-            },
-            "post": {
-                "description": "添加设置 一些系统设置保存接口",
-                "consumes": [
-                    "application/json"
-                ],
-                "produces": [
-                    "application/json"
-                ],
-                "tags": [
-                    "API.admin"
-                ],
-                "summary": "添加设置",
-                "parameters": [
-                    {
-                        "description": "请求信息",
-                        "name": "Request",
-                        "in": "body",
-                        "required": true,
-                        "schema": {
-                            "$ref": "#/definitions/admin.SettingPostRequest"
-                        }
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/base.ReturnMsg"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/code.Failure"
-                        }
-                    }
-                }
-            }
-        },
-        "/index": {
-            "get": {
-                "description": "返回index html",
-                "consumes": [
-                    "text/plain"
-                ],
-                "produces": [
-                    "text/html"
-                ],
-                "tags": [
-                    "API.html"
-                ],
-                "summary": "返回index html",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "string"
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/code.Failure"
+                            "allOf": [
+                                {
+                                    "$ref": "#/definitions/base.ReturnMsg"
+                                },
+                                {
+                                    "type": "object",
+                                    "properties": {
+                                        "Data": {
+                                            "$ref": "#/definitions/data_obj.UserInfoRes"
+                                        }
+                                    }
+                                }
+                            ]
                         }
                     }
                 }
@@ -130,44 +60,36 @@ var doc = `{
         }
     },
     "definitions": {
-        "admin.SettingPostRequest": {
-            "type": "object",
-            "required": [
-                "key",
-                "val"
-            ],
-            "properties": {
-                "key": {
-                    "description": "键名",
-                    "type": "string"
-                },
-                "val": {
-                    "description": "键值",
-                    "type": "string"
-                }
-            }
-        },
         "base.ReturnMsg": {
             "type": "object",
             "properties": {
                 "code": {
+                    "description": "业务状态码",
                     "type": "integer"
                 },
-                "data": {},
+                "data": {
+                    "description": "数据"
+                },
                 "msg": {
+                    "description": "消息",
+                    "type": "string"
+                },
+                "trace": {
+                    "description": "请求ID",
                     "type": "string"
                 }
             }
         },
-        "code.Failure": {
+        "data_obj.UserInfoRes": {
             "type": "object",
             "properties": {
-                "code": {
-                    "description": "业务码",
-                    "type": "integer"
+                "email": {
+                    "type": "string"
                 },
-                "message": {
-                    "description": "描述信息",
+                "ip": {
+                    "type": "string"
+                },
+                "username": {
                     "type": "string"
                 }
             }

@@ -1,15 +1,37 @@
 package base
 
+type RegServer interface {
+	CheckSever() error
+	OverServer() error
+}
 type ServerManage struct {
-	Map map[string]interface{}
+	sMap map[string]RegServer
 }
 
-func (ServerManage) New() *ServerManage {
-	return &ServerManage{Map: make(map[string]interface{})}
+func NewServerManage() *ServerManage {
+	return &ServerManage{sMap: make(map[string]RegServer)}
 }
 func (m *ServerManage) Get(name string) interface{} {
-	return m.Map[name]
+	return m.sMap[name]
 }
-func (m *ServerManage) Set(name string, sever interface{}) {
-	m.Map[name] = sever
+func (m *ServerManage) Set(name string, sever RegServer) {
+	m.sMap[name] = sever
+}
+func (m *ServerManage) Check() error {
+	for _, v := range m.sMap {
+		err := v.CheckSever()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+func (m *ServerManage) Over() error {
+	for _, v := range m.sMap {
+		err := v.OverServer()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
