@@ -5,20 +5,18 @@ import (
 	"bytes"
 	"crypto/sha256"
 	"fmt"
+	"github.com/pkg/errors"
+	"go.uber.org/zap"
 	"go/ast"
 	"go/format"
 	"go/parser"
 	"go/token"
+	"golang.org/x/tools/go/packages"
 	"io/ioutil"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
-
-	"web_demo/pkg/errors"
-
-	"go.uber.org/zap"
-	"golang.org/x/tools/go/packages"
 )
 
 var stdlib = make(map[string]bool)
