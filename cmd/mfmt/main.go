@@ -127,7 +127,7 @@ func main() {
 			fmt.Println(path)
 		}
 
-		if err = ioutil.WriteFile(path, raw, info.Mode()); err != nil {
+		if err = os.WriteFile(path, raw, info.Mode()); err != nil {
 			return errors.Wrapf(err, "write file %s err", path)
 		}
 
